@@ -1,21 +1,17 @@
-"""Prague Departure Board integration."""
+"""Air Quality CZ custom component for Home Assistant."""
 from __future__ import annotations
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-
 from . import hub
-from .const import DOMAIN, CONF_DEP_NUM
-from homeassistant.const import CONF_API_KEY, CONF_ID
-from .dep_board_api import PIDDepartureBoardAPI
+from .const import DOMAIN, CONF_STOP_SEL
 
-PLATFORMS: list[str] = ["sensor", "binary_sensor"]
+PLATFORMS: list[str] = ["sensor"]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up Departure Board from a config entry flow."""
-    response = await hass.async_add_executor_job(PIDDepartureBoardAPI.update_info, entry.data[CONF_API_KEY], entry.data[CONF_ID], entry.data[CONF_DEP_NUM])
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = hub.DepartureBoard(hass, entry.data[CONF_API_KEY], entry.data[CONF_ID], entry.data[CONF_DEP_NUM], response)
+    """Set up Air Quality station from a config entry flow."""
+    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = hub.AirQuality(hass, entry.data[CONF_STOP_SEL])
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True

@@ -1,0 +1,12 @@
+{
+  "domain": "cz_air_quality",
+  "name": "CHMU Air Quality",
+  "codeowners": ["@dvejsada"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/dvejsada/Air_Quality_CZ",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/dvejsada/Air_Quality_CZ/issues",
+  "requirements": [],
+  "version": "0.0.1"
+}

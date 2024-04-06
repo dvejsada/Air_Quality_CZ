@@ -1,0 +1,19 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add Air Quality station",
+        "data": {
+          "station_selector": "Select the station"
+        },
+        "data_description": {
+          "station_selector": "Hint - type to search"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Unknown connection error - cannot download data",
+      "station_not_in_list": "Station was not found in list - choose only station in provided list."
+    }
+  }
+}

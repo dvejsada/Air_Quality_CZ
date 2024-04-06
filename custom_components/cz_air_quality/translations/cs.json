@@ -1,0 +1,19 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Přidej měřící stanici",
+        "data": {
+          "station_selector": "Vyber měřící stanici"
+        },
+        "data_description": {
+          "station_selector": "Tip - zační psát pro hledání"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Neznámá chyba spojení, - nelze stáhnout data",
+      "station_not_in_list": "Měřící stanice není v seznamu - použij jen stanice ze seznamu."
+    }
+  }
+}
