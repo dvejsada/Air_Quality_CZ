@@ -19,7 +19,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
     # Set entities for air quality and measurements
     new_entities.append(AirQualitySensor(air_quality_station))
-    for i in range(len(air_quality_station.measuments)):
+    for i in range(len(air_quality_station.measurements)):
         new_entities.append(MeasurementSensor(i, air_quality_station))
 
     # Set diagnostic entities
@@ -76,12 +76,7 @@ class AirQualitySensor(SensorEntity):
     @property
     def name(self) -> str:
         """Returns entity name"""
-        return f"AQ Index {self._aq_station.name}"
-
-    @property
-    def device_class(self) -> str:
-        """Returns device class"""
-        return SensorDeviceClass.AQI
+        return f"AQ Index"
 
     async def async_added_to_hass(self):
         """Run when this Entity has been added to HA."""
@@ -111,25 +106,22 @@ class MeasurementSensor(SensorEntity):
         return self._aq_station.device_info
 
     @property
-    def native_value(self) -> str:
+    def native_value(self):
         """ Returns data as state if available."""
-        if self._aq_station.measurements[self._measurement]["Flag"] == "no_meas":
-            return STATE_UNAVAILABLE
-        elif self._aq_station.measurements[self._measurement]["Flag"] == "no_data":
-            return STATE_UNKNOWN
-        elif self._aq_station.measurements[self._measurement]["Flag"] == "ok":
+        if self._aq_station.measurements[self._measurement]["Flag"] == "ok":
             if self._aq_station.measurements[self._measurement]["Val"] != "":
-                return STATE_UNKNOWN
+                if "," in self._aq_station.measurements[self._measurement]["Val"]:
+                    value: str = self._aq_station.measurements[self._measurement]["Val"]
+                    return float(value.replace(",", "."))
+                else:
+                    return float(self._aq_station.measurements[self._measurement]["Val"])
             else:
-                return self._aq_station.measurements[self._measurement]["Val"]
+                return None
+        else:
+            return None
 
     @property
-    def name(self) -> str:
-        """Returns entity name"""
-        return self._aq_station.measurements[self._measurement]["Code"]
-
-    @property
-    def device_class(self) -> str:
+    def device_class(self) -> SensorDeviceClass | None:
         """Returns device class"""
         match self._aq_station.measurements[self._measurement]["Code"]:
             case "SO2":
@@ -144,8 +136,22 @@ class MeasurementSensor(SensorEntity):
                 return SensorDeviceClass.PM25
 
     @property
+    def name(self) -> str:
+        """Returns entity name"""
+        return self._aq_station.measurements[self._measurement]["Code"]
+
+    @property
     def native_unit_of_measurement(self):
         return "µg/m³"
+
+    @property
+    def extra_state_attributes(self) -> dict | None:
+        if self._aq_station.measurements[self._measurement]["Flag"] == "no_meas":
+            return {"info": "Veličina se na uvedené stanici neměří"}
+        elif self._aq_station.measurements[self._measurement]["Flag"] == "no_data":
+            return {"info": "Neúplná data"}
+        else:
+            return None
 
     async def async_added_to_hass(self):
         """Run when this Entity has been added to HA."""
@@ -193,7 +199,6 @@ class UpdateSensor(SensorEntity):
     _attr_has_entity_name = True
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_icon = ICON_UPDATE
-    _attr_device_class = SensorDeviceClass.TIMESTAMP
 
     def __init__(self, aq_station):
 
@@ -212,7 +217,7 @@ class UpdateSensor(SensorEntity):
 
     @property
     def native_value(self):
-        return self._aq_station.updated
+        return self._aq_station.data_updated
 
     async def async_update(self):
         """ Calls regular update of data . """

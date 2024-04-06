@@ -5,13 +5,15 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from . import hub
 from .const import DOMAIN, CONF_STOP_SEL
+from .air_quality_data import CHMUAirQuality
 
 PLATFORMS: list[str] = ["sensor"]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Air Quality station from a config entry flow."""
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = hub.AirQuality(hass, entry.data[CONF_STOP_SEL])
+    initial_data = await hass.async_add_executor_job(CHMUAirQuality.update_info, entry.data[CONF_STOP_SEL])
+    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = hub.AirQuality(hass, entry.data[CONF_STOP_SEL], initial_data)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True

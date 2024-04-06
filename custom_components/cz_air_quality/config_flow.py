@@ -3,8 +3,7 @@ import voluptuous as vol
 import logging
 from typing import Any, Tuple, Dict
 
-from .const import DOMAIN, CONF_STOP_SEL
-from homeassistant.const import STATION_LIST
+from .const import DOMAIN, CONF_STOP_SEL, STATION_LIST
 from homeassistant import config_entries, exceptions
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.selector import selector
@@ -44,8 +43,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # Steps to take if user input is received
         if user_input is not None:
             try:
-                info, data = await validate_input(self.hass, user_input)
-                return self.async_create_entry(title=user_input[CONF_STOP_SEL])
+                return self.async_create_entry(title=user_input[CONF_STOP_SEL], data=user_input)
 
             except CannotConnect:
                 _LOGGER.exception("Cannot download data, check your internet connection.")

@@ -9,12 +9,12 @@ from .const import DOMAIN
 class AirQuality:
     """Setting Air Quality Station as device."""
 
-    def __init__(self, hass: HomeAssistant, station: str) -> None:
+    def __init__(self, hass: HomeAssistant, station: str, data) -> None:
         """Initialize departure board."""
         self._hass: HomeAssistant = hass
         self._station: str = station
         self._callbacks = set()
-        self.data: dict = {}
+        self.data: dict = data
 
     @property
     def device_info(self):
