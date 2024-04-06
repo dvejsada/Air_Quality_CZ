@@ -1,6 +1,6 @@
 {
-    "name": "Prague Departure Boards",
-    "filename": "pid_departures.zip",
+    "name": "Czech Air Quality Measurements",
+    "filename": "cz_air_quality.zip",
     "hide_default_branch": true,
     "homeassistant": "2023.8.0",
     "render_readme": true,
