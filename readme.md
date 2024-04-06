@@ -22,6 +22,6 @@ From the Home Assistant front page go to **Configuration** and then select **Int
 
 Use the "plus" button in the bottom right to add a new integration called **CHMU Air Quality** and choose preferred air quality station.
 
-You can find the closest air quality station [here](http://pr-asu.chmi.cz:8080/IskoOzarkApp/rest/map_3h_cz/
+You can find the closest air quality station [here](http://pr-asu.chmi.cz:8080/IskoOzarkApp/rest/map_3h_cz/)
 
 The success dialog will appear or an error will be displayed in the popup. Please note that not all stations measure all pollutants - some entities thus may be unavailable.
