@@ -7,16 +7,20 @@ from .const import DOMAIN, CONF_STOP_SEL, STATION_LIST
 from homeassistant import config_entries, exceptions
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.selector import selector
+from.air_quality_data import CHMUAirQuality
 
 
 _LOGGER = logging.getLogger(__name__)
 
 
-async def validate_input(hass: HomeAssistant, data: dict) -> tuple[dict[str, str], dict]:
+def validate_input(data: dict) -> None:
     """Validate the user input allows us to connect.
     Data has the keys from DATA_SCHEMA with values provided by the user.
     """
-    pass
+    if CHMUAirQuality.validate_station(data[CONF_STOP_SEL]):
+        return None
+    else:
+        raise StationNotFound
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -43,6 +47,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # Steps to take if user input is received
         if user_input is not None:
             try:
+                await self.hass.async_add_executor_job(validate_input,user_input)
                 return self.async_create_entry(title=user_input[CONF_STOP_SEL], data=user_input)
 
             except CannotConnect:
