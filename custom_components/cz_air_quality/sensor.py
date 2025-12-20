@@ -6,7 +6,7 @@ from homeassistant.components.sensor import SensorEntity, SensorDeviceClass
 from datetime import timedelta
 
 from .const import DOMAIN, ICON_UPDATE
-from homeassistant.const import EntityCategory, STATE_UNKNOWN, STATE_UNAVAILABLE
+from homeassistant.const import EntityCategory
 
 
 SCAN_INTERVAL = timedelta(seconds=900)
@@ -31,14 +31,13 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
 
 class AirQualitySensor(SensorEntity):
-    """Sensor for departure."""
+    """Sensor for air quality index."""
     _attr_has_entity_name = True
     _attr_should_poll = False
 
     def __init__(self, aq_station):
-
         self._aq_station = aq_station
-        self._attr_unique_id = f"{self._aq_station.name}_aqi"
+        self._attr_unique_id = f"{self._aq_station.station_code}_aqi"
 
     @property
     def device_info(self) -> str:
@@ -90,15 +89,18 @@ class AirQualitySensor(SensorEntity):
 
 
 class MeasurementSensor(SensorEntity):
-    """Sensor for departure."""
+    """Sensor for air quality measurement."""
     _attr_has_entity_name = True
     _attr_should_poll = False
 
-    def __init__(self, measurement: int, aq_station):
-
-        self._measurement = measurement
+    def __init__(self, measurement_index: int, aq_station):
+        self._measurement_index = measurement_index
         self._aq_station = aq_station
-        self._attr_unique_id = f"{self._aq_station.name}_{self._measurement}"
+        measurement = self._aq_station.measurements[measurement_index]
+        self._measurement_key = measurement["key"]
+        self._measurement_name = measurement["name"]
+        self._measurement_code = measurement["code"]
+        self._attr_unique_id = f"{self._aq_station.station_code}_{self._measurement_key}"
 
     @property
     def device_info(self) -> str:
@@ -107,38 +109,35 @@ class MeasurementSensor(SensorEntity):
 
     @property
     def native_value(self):
-        """ Returns data as state if available."""
-        if self._aq_station.measurements[self._measurement]["Flag"] == "ok":
-            if self._aq_station.measurements[self._measurement]["Val"] != "":
-                if "," in self._aq_station.measurements[self._measurement]["Val"]:
-                    value: str = self._aq_station.measurements[self._measurement]["Val"]
-                    return float(value.replace(",", "."))
-                else:
-                    return float(self._aq_station.measurements[self._measurement]["Val"])
-            else:
-                return None
-        else:
-            return None
+        """Returns measurement value as state if available."""
+        measurements = self._aq_station.measurements
+        if self._measurement_index < len(measurements):
+            measurement = measurements[self._measurement_index]
+            return measurement.get("value")
+        return None
 
     @property
     def device_class(self) -> SensorDeviceClass | None:
-        """Returns device class"""
-        match self._aq_station.measurements[self._measurement]["Code"]:
+        """Returns device class based on measurement code."""
+        match self._measurement_code:
             case "SO2":
                 return SensorDeviceClass.SULPHUR_DIOXIDE
             case "NO2":
                 return SensorDeviceClass.NITROGEN_DIOXIDE
-            case "PM10" | "PM10_Model":
+            case "CO":
+                return SensorDeviceClass.CO
+            case "PM10":
                 return SensorDeviceClass.PM10
-            case "O3" | "O3_Model":
+            case "O3":
                 return SensorDeviceClass.OZONE
             case "PM2_5":
                 return SensorDeviceClass.PM25
+        return None
 
     @property
     def name(self) -> str:
-        """Returns entity name"""
-        return self._aq_station.measurements[self._measurement]["Code"]
+        """Returns entity name."""
+        return self._measurement_name
 
     @property
     def native_unit_of_measurement(self):
@@ -146,21 +145,20 @@ class MeasurementSensor(SensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict | None:
-        if self._aq_station.measurements[self._measurement]["Flag"] == "no_meas":
-            return {"info": "Veličina se na uvedené stanici neměří"}
-        elif self._aq_station.measurements[self._measurement]["Flag"] == "no_data":
-            return {"info": "Neúplná data"}
-        else:
-            return None
+        """Returns additional attributes."""
+        measurements = self._aq_station.measurements
+        if self._measurement_index < len(measurements):
+            measurement = measurements[self._measurement_index]
+            if not measurement.get("available"):
+                return {"info": "Veličina není momentálně k dispozici"}
+        return None
 
     async def async_added_to_hass(self):
         """Run when this Entity has been added to HA."""
-        # Sensors should also register callbacks to HA when their state changes
         self._aq_station.register_callback(self.async_write_ha_state)
 
     async def async_will_remove_from_hass(self):
         """Entity being removed from hass."""
-        # The opposite of async_added_to_hass. Remove any registered call backs here.
         self._aq_station.remove_callback(self.async_write_ha_state)
 
 
@@ -171,9 +169,8 @@ class StationSensor(SensorEntity):
     _attr_should_poll = False
 
     def __init__(self, aq_station):
-
         self._aq_station = aq_station
-        self._attr_unique_id = f"{self._aq_station.name}_station"
+        self._attr_unique_id = f"{self._aq_station.station_code}_station"
 
     @property
     def device_info(self):
@@ -182,7 +179,7 @@ class StationSensor(SensorEntity):
 
     @property
     def name(self) -> str:
-        """Returns entity name"""
+        """Returns entity name."""
         return "AQ Station"
 
     @property
@@ -191,7 +188,20 @@ class StationSensor(SensorEntity):
 
     @property
     def extra_state_attributes(self):
-        return {"latitude": self._aq_station.latitude, "longitude": self._aq_station.longitude}
+        return {
+            "station_code": self._aq_station.station_code,
+            "region": self._aq_station.region,
+            "classification": self._aq_station.classification,
+            "owner": self._aq_station.owner,
+        }
+
+    async def async_added_to_hass(self):
+        """Run when this Entity has been added to HA."""
+        self._aq_station.register_callback(self.async_write_ha_state)
+
+    async def async_will_remove_from_hass(self):
+        """Entity being removed from hass."""
+        self._aq_station.remove_callback(self.async_write_ha_state)
 
 
 class UpdateSensor(SensorEntity):
@@ -199,11 +209,11 @@ class UpdateSensor(SensorEntity):
     _attr_has_entity_name = True
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_icon = ICON_UPDATE
+    _attr_should_poll = True
 
     def __init__(self, aq_station):
-
         self._aq_station = aq_station
-        self._attr_unique_id = f"{self._aq_station.name}_updated"
+        self._attr_unique_id = f"{self._aq_station.station_code}_updated"
 
     @property
     def device_info(self):
@@ -212,7 +222,7 @@ class UpdateSensor(SensorEntity):
 
     @property
     def name(self) -> str:
-        """Returns entity name"""
+        """Returns entity name."""
         return "Data updated"
 
     @property
@@ -220,6 +230,6 @@ class UpdateSensor(SensorEntity):
         return self._aq_station.data_updated
 
     async def async_update(self):
-        """ Calls regular update of data . """
+        """Calls regular update of data."""
         await self._aq_station.async_update()
 

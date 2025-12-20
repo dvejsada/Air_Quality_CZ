@@ -2,18 +2,18 @@
   "config": {
     "step": {
       "user": {
-        "title": "Přidej měřící stanici",
+        "title": "Přidat měřící stanici kvality ovzduší",
         "data": {
-          "station_selector": "Vyber měřící stanici"
+          "station_selector": "Vyberte měřící stanici"
         },
         "data_description": {
-          "station_selector": "Tip - zační psát pro hledání"
+          "station_selector": "Vyberte měřící stanici ze seznamu."
         }
       }
     },
     "error": {
-      "cannot_connect": "Neznámá chyba spojení, - nelze stáhnout data",
-      "station_not_in_list": "Měřící stanice není v seznamu - použij jen stanice ze seznamu."
+      "cannot_connect": "Chyba připojení - nelze stáhnout data z ČHMÚ",
+      "station_not_in_list": "Stanice nebyla nalezena. Vyberte prosím stanici ze seznamu."
     }
   }
 }

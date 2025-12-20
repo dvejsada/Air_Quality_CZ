@@ -1,0 +1,4 @@
+# Requirements for development and testing
+aiohttp>=3.8.0
+homeassistant>=2023.0.0
+voluptous
