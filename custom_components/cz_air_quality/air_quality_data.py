@@ -109,17 +109,21 @@ class CHMUAirQuality:
         }
 
     @staticmethod
-    async def get_all_station_codes():
-        """Get list of all available station codes.
+    async def get_all_station_names():
+        """Get list of all available station names.
 
         Returns:
-            list: List of station codes (e.g., ['ABRE', 'AHOL', 'ACHO', ...])
+            list: List of station names (e.g., ['Praha 6-Břevnov', 'Praha 10-Průmyslová', ...])
         """
         try:
             data = await CHMUAirQuality._fetch_data()
-            return [station.get('station_code') for station in data.get("data", []) if station.get('station_code')]
+            return [
+                CHMUAirQuality._clean_html(station.get('station_name'))
+                for station in data.get("data", [])
+                if station.get('station_name')
+            ]
         except Exception as e:
-            _LOGGER.error(f"Error getting all station codes: {e}")
+            _LOGGER.error(f"Error getting all station names: {e}")
             return []
 
     @staticmethod
