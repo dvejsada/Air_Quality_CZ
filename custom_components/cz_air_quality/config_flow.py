@@ -1,27 +1,22 @@
 import voluptuous as vol
 
 import logging
-from typing import Any, Tuple, Dict
 
-from .const import DOMAIN, CONF_STOP_SEL, STATION_LIST
+from .const import DOMAIN, CONF_STOP_SEL
 from homeassistant import config_entries, exceptions
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.selector import selector
-from.air_quality_data import CHMUAirQuality
+from .air_quality_data import CHMUAirQuality
 
 
 _LOGGER = logging.getLogger(__name__)
 
 
-def validate_input(data: dict) -> None:
+def get_station_code_list() -> list:
     """Validate the user input allows us to connect.
     Data has the keys from DATA_SCHEMA with values provided by the user.
     """
-    if CHMUAirQuality.validate_station(data[CONF_STOP_SEL]):
-        return None
-    else:
-        raise StationNotFound
-
+    return CHMUAirQuality.get_all_station_codes()
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
@@ -32,12 +27,14 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         data_schema: dict = {}
 
+        station_code_list = get_station_code_list()
+
         data_schema[CONF_STOP_SEL] = selector({
                 "select": {
-                    "options": STATION_LIST,
+                    "options": station_code_list,
                     "mode": "dropdown",
                     "sort": True,
-                    "custom_value": True
+                    "custom_value": False
                 }
             })
 
@@ -47,7 +44,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # Steps to take if user input is received
         if user_input is not None:
             try:
-                await self.hass.async_add_executor_job(validate_input,user_input)
                 return self.async_create_entry(title=user_input[CONF_STOP_SEL], data=user_input)
 
             except CannotConnect:
