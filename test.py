@@ -15,18 +15,18 @@ async def test_new_api():
     print("Testing simplified CHMUAirQuality class...")
     print("=" * 80)
 
-    # Test 1: Získání všech kódů stanic
-    print("\n1. Testing get_all_station_codes():")
+    # Test 1: Získání všech názvů stanic
+    print("\n1. Testing get_all_station_names():")
     print("-" * 80)
     try:
-        station_codes = await CHMUAirQuality.get_all_station_codes()
-        print(f"Total stations available: {len(station_codes)}")
-        print(f"\nFirst 10 station codes:")
-        for i, code in enumerate(station_codes[:10], 1):
-            print(f"  {i}. {code}")
-        print(f"\nLast 5 station codes:")
-        for i, code in enumerate(station_codes[-5:], len(station_codes)-4):
-            print(f"  {i}. {code}")
+        station_names = await CHMUAirQuality.get_all_station_names()
+        print(f"Total stations available: {len(station_names)}")
+        print(f"\nFirst 10 station names:")
+        for i, name in enumerate(station_names[:10], 1):
+            print(f"  {i}. {name}")
+        print(f"\nLast 5 station names:")
+        for i, name in enumerate(station_names[-5:], len(station_names)-4):
+            print(f"  {i}. {name}")
     except Exception as e:
         print(f"Error: {e}")
 
@@ -70,17 +70,17 @@ async def test_new_api():
 
     print("\n" + "=" * 80)
 
-    # Test 3: Test konkrétního kódu stanice
-    print("\n3. Testing get_station_data() with specific station code:")
+    # Test 3: Test konkrétního názvu stanice
+    print("\n3. Testing get_station_data() with specific station name:")
     print("-" * 80)
 
-    # Nejprve získáme nějaký kód stanice
-    codes = await CHMUAirQuality.get_all_station_codes()
-    if codes:
-        test_code = codes[0]  # Vezmeme první kód
-        print(f"\n  Testing with code: '{test_code}'")
+    # Nejprve získáme nějaký název stanice
+    names = await CHMUAirQuality.get_all_station_names()
+    if names:
+        test_name = names[0]  # Vezmeme první název
+        print(f"\n  Testing with name: '{test_name}'")
         try:
-            result = await CHMUAirQuality.get_station_data(test_code)
+            result = await CHMUAirQuality.get_station_data(test_name)
 
             if result["station_data"]:
                 print(f"  ✓ Success!")
