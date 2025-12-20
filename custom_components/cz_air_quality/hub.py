@@ -114,9 +114,7 @@ class AirQuality:
 
     async def async_update(self) -> None:
         """Updates the data from API."""
-        data = await self._hass.async_add_executor_job(
-            CHMUAirQuality.get_station_data, self._station
-        )
+        data = await CHMUAirQuality.get_station_data(self._station)
         if data and data.get("updated") and self.data_updated != data["updated"]:
             self.data = data
             await self.publish_updates()

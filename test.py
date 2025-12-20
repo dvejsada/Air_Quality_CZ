@@ -1,6 +1,7 @@
 import json
 import sys
 import os
+import asyncio
 
 # Přidání cesty k modulu
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'custom_components', 'cz_air_quality'))
@@ -9,7 +10,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'custom_components', 
 from air_quality_data import CHMUAirQuality
 
 
-def test_new_api():
+async def test_new_api():
     """Test zjednodušeného API."""
     print("Testing simplified CHMUAirQuality class...")
     print("=" * 80)
@@ -18,7 +19,7 @@ def test_new_api():
     print("\n1. Testing get_all_station_codes():")
     print("-" * 80)
     try:
-        station_codes = CHMUAirQuality.get_all_station_codes()
+        station_codes = await CHMUAirQuality.get_all_station_codes()
         print(f"Total stations available: {len(station_codes)}")
         print(f"\nFirst 10 station codes:")
         for i, code in enumerate(station_codes[:10], 1):
@@ -40,7 +41,7 @@ def test_new_api():
     for station_name in test_stations:
         print(f"\n  Searching for: '{station_name}'")
         try:
-            result = CHMUAirQuality.get_station_data(station_name)
+            result = await CHMUAirQuality.get_station_data(station_name)
 
             if result["station_data"]:
                 data = result["station_data"]
@@ -74,12 +75,12 @@ def test_new_api():
     print("-" * 80)
 
     # Nejprve získáme nějaký kód stanice
-    codes = CHMUAirQuality.get_all_station_codes()
+    codes = await CHMUAirQuality.get_all_station_codes()
     if codes:
         test_code = codes[0]  # Vezmeme první kód
         print(f"\n  Testing with code: '{test_code}'")
         try:
-            result = CHMUAirQuality.get_station_data(test_code)
+            result = await CHMUAirQuality.get_station_data(test_code)
 
             if result["station_data"]:
                 print(f"  ✓ Success!")
@@ -96,7 +97,7 @@ def test_new_api():
     print("\n4. Testing with non-existent station:")
     print("-" * 80)
     try:
-        result = CHMUAirQuality.get_station_data("NonExistentStation123")
+        result = await CHMUAirQuality.get_station_data("NonExistentStation123")
         if result["station_data"] is None:
             print("  ✓ Correctly returned None for non-existent station")
         else:
@@ -110,7 +111,7 @@ def test_new_api():
     print("\n5. Testing data structure for hub.py integration:")
     print("-" * 80)
     try:
-        result = CHMUAirQuality.get_station_data("Praha")
+        result = await CHMUAirQuality.get_station_data("Praha")
 
         if result["station_data"]:
             data = result["station_data"]
@@ -149,7 +150,4 @@ def test_new_api():
 
 
 if __name__ == "__main__":
-    test_new_api()
-
-
-
+    asyncio.run(test_new_api())

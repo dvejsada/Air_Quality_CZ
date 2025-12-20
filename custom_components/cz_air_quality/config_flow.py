@@ -12,11 +12,9 @@ from .air_quality_data import CHMUAirQuality
 _LOGGER = logging.getLogger(__name__)
 
 
-def get_station_code_list() -> list:
-    """Validate the user input allows us to connect.
-    Data has the keys from DATA_SCHEMA with values provided by the user.
-    """
-    return CHMUAirQuality.get_all_station_codes()
+async def get_station_code_list() -> list:
+    """Fetch all available station codes from CHMI API."""
+    return await CHMUAirQuality.get_all_station_codes()
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
@@ -27,7 +25,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         data_schema: dict = {}
 
-        station_code_list = get_station_code_list()
+        station_code_list = await get_station_code_list()
 
         data_schema[CONF_STOP_SEL] = selector({
                 "select": {

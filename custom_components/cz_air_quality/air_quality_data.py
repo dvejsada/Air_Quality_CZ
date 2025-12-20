@@ -1,4 +1,4 @@
-import requests
+import aiohttp
 import logging
 import re
 
@@ -10,7 +10,7 @@ API_URL = "https://data-provider.chmi.cz/api/data/tab/ovzdusi.stanice.kvalita.gr
 class CHMUAirQuality:
 
     @staticmethod
-    def _fetch_data(search_text="", page_size=300):
+    async def _fetch_data(search_text="", page_size=300):
         """Internal method to fetch data from CHMI API using POST request.
 
         Args:
@@ -29,11 +29,12 @@ class CHMUAirQuality:
         }
 
         try:
-            response = requests.post(API_URL, json=payload, timeout=10)
-            response.raise_for_status()
-            data = response.json()
-            return data
-        except requests.exceptions.RequestException as e:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(API_URL, json=payload, timeout=aiohttp.ClientTimeout(total=10)) as response:
+                    response.raise_for_status()
+                    data = await response.json()
+                    return data
+        except aiohttp.ClientError as e:
             _LOGGER.error(f"Error fetching data from CHMI API: {e}")
             raise
 
@@ -108,21 +109,21 @@ class CHMUAirQuality:
         }
 
     @staticmethod
-    def get_all_station_codes():
+    async def get_all_station_codes():
         """Get list of all available station codes.
 
         Returns:
             list: List of station codes (e.g., ['ABRE', 'AHOL', 'ACHO', ...])
         """
         try:
-            data = CHMUAirQuality._fetch_data()
+            data = await CHMUAirQuality._fetch_data()
             return [station.get('station_code') for station in data.get("data", []) if station.get('station_code')]
         except Exception as e:
             _LOGGER.error(f"Error getting all station codes: {e}")
             return []
 
     @staticmethod
-    def get_station_data(station_name):
+    async def get_station_data(station_name):
         """Get data for a specific station by its name (can be partial match).
 
         Args:
@@ -133,7 +134,7 @@ class CHMUAirQuality:
         """
         try:
             # Search for station by name
-            data = CHMUAirQuality._fetch_data(search_text=station_name, page_size=10)
+            data = await CHMUAirQuality._fetch_data(search_text=station_name, page_size=10)
 
             if not data.get("data"):
                 _LOGGER.warning(f"No station found matching: {station_name}")
@@ -150,4 +151,3 @@ class CHMUAirQuality:
         except Exception as e:
             _LOGGER.error(f"Error getting station data for '{station_name}': {e}")
             return {"updated": None, "station_data": None}
-
