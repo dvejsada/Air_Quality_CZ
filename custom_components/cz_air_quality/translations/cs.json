@@ -7,7 +7,7 @@
           "station_selector": "Vyberte měřící stanici"
         },
         "data_description": {
-          "station_selector": "Vyberte kód stanice (např. ABRE, AHOL). Kódy stanic naleznete v tabulce ČHMÚ: https://www.chmi.cz/namerena-data/data-z-mericich-stanic/tabulka-kvality-ovzdusi"
+          "station_selector": "Vyberte měřící stanici ze seznamu."
         }
       }
     },

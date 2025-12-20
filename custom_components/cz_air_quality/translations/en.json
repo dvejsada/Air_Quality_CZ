@@ -7,7 +7,7 @@
           "station_selector": "Select monitoring station"
         },
         "data_description": {
-          "station_selector": "Enter station code (e.g., ABRE, AHOL). Find station codes in CHMI table: https://www.chmi.cz/namerena-data/data-z-mericich-stanic/tabulka-kvality-ovzdusi"
+          "station_selector": "Select monitoring station."
         }
       }
     },
