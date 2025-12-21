@@ -9,7 +9,7 @@ from .const import DOMAIN, ICON_UPDATE
 from homeassistant.const import EntityCategory
 
 
-SCAN_INTERVAL = timedelta(seconds=900)
+SCAN_INTERVAL = timedelta(seconds=3600)
 
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
