@@ -1,71 +1,157 @@
-import voluptuous as vol
+"""Config and options flow for the CHMU Air Quality integration."""
+from __future__ import annotations
 
 import logging
+from typing import Any
 
-from .const import DOMAIN, CONF_STOP_SEL
-from homeassistant import config_entries, exceptions
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.selector import selector
-from .air_quality_data import CHMUAirQuality
+import voluptuous as vol
 
+from homeassistant.config_entries import (
+    ConfigFlow,
+    ConfigFlowResult,
+    OptionsFlow,
+)
+from homeassistant.const import CONF_SCAN_INTERVAL
+from homeassistant.core import callback
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.selector import (
+    NumberSelector,
+    NumberSelectorConfig,
+    NumberSelectorMode,
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
+)
+
+from .air_quality_data import CHMUAirQuality, CHMUApiError
+from .const import (
+    CONF_STOP_SEL,
+    DEFAULT_SCAN_INTERVAL_MINUTES,
+    DOMAIN,
+    MAX_SCAN_INTERVAL_MINUTES,
+    MIN_SCAN_INTERVAL_MINUTES,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
 
-async def get_station_name_list() -> list:
-    """Fetch all available station names from CHMI API."""
-    return await CHMUAirQuality.get_all_station_names()
+def _station_schema(options: list[str]) -> vol.Schema:
+    """Build the station-selection schema."""
+    return vol.Schema(
+        {
+            vol.Required(CONF_STOP_SEL): SelectSelector(
+                SelectSelectorConfig(
+                    options=options,
+                    mode=SelectSelectorMode.DROPDOWN,
+                    sort=True,
+                    custom_value=False,
+                )
+            )
+        }
+    )
 
-class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
-    CONNECTION_CLASS = config_entries.CONN_CLASS_CLOUD_POLL
+class CHMUConfigFlow(ConfigFlow, domain=DOMAIN):
+    """Handle a config flow for CHMU Air Quality."""
+
     VERSION = 1
 
-    async def async_step_user(self, user_input=None):
+    async def _async_station_options(self) -> list[str]:
+        """Fetch the sorted list of station names from CHMI."""
+        api = CHMUAirQuality(async_get_clientsession(self.hass))
+        return sorted(await api.get_all_station_names())
 
-        data_schema: dict = {}
-
-        station_name_list = await get_station_name_list()
-
-        data_schema[CONF_STOP_SEL] = selector({
-                "select": {
-                    "options": station_name_list,
-                    "mode": "dropdown",
-                    "sort": True,
-                    "custom_value": False
-                }
-            })
-
-        # Set dict for errors
-        errors: dict = {}
-
-        # Steps to take if user input is received
+    async def async_step_user(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Handle the initial step."""
         if user_input is not None:
-            try:
-                return self.async_create_entry(title=user_input[CONF_STOP_SEL], data=user_input)
+            station = user_input[CONF_STOP_SEL]
+            await self.async_set_unique_id(station)
+            self._abort_if_unique_id_configured()
+            return self.async_create_entry(title=station, data=user_input)
 
-            except CannotConnect:
-                _LOGGER.exception("Cannot download data, check your internet connection.")
-                errors["base"] = "cannot_connect"
+        try:
+            options = await self._async_station_options()
+        except CHMUApiError:
+            _LOGGER.exception("Unable to fetch station list from CHMI")
+            return self.async_abort(reason="cannot_connect")
 
-            except StationNotFound:
-                errors[CONF_STOP_SEL] = "station_not_in_list"
+        if not options:
+            return self.async_abort(reason="no_stations")
 
-            except Exception:  # pylint: disable=broad-except
-                _LOGGER.exception("Unknown exception")
-                errors["base"] = "Unknown exception"
+        return self.async_show_form(step_id="user", data_schema=_station_schema(options))
 
-        # If there is no user input or there were errors, show the form again, including any errors that were found with the input.
-        return self.async_show_form(
-            step_id="user", data_schema=vol.Schema(data_schema), errors=errors
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Handle reconfiguration of the selected station."""
+        reconfigure_entry = self._get_reconfigure_entry()
+
+        if user_input is not None:
+            station = user_input[CONF_STOP_SEL]
+            # Block switching to a station already configured by another entry.
+            for entry in self._async_current_entries():
+                if (
+                    entry.entry_id != reconfigure_entry.entry_id
+                    and entry.unique_id == station
+                ):
+                    return self.async_abort(reason="already_configured")
+
+            await self.async_set_unique_id(station)
+            return self.async_update_reload_and_abort(
+                reconfigure_entry,
+                unique_id=station,
+                title=station,
+                data_updates={CONF_STOP_SEL: station},
+            )
+
+        try:
+            options = await self._async_station_options()
+        except CHMUApiError:
+            _LOGGER.exception("Unable to fetch station list from CHMI")
+            return self.async_abort(reason="cannot_connect")
+
+        if not options:
+            return self.async_abort(reason="no_stations")
+
+        schema = self.add_suggested_values_to_schema(
+            _station_schema(options),
+            {CONF_STOP_SEL: reconfigure_entry.data.get(CONF_STOP_SEL)},
         )
+        return self.async_show_form(step_id="reconfigure", data_schema=schema)
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry) -> CHMUOptionsFlow:
+        """Return the options flow handler."""
+        return CHMUOptionsFlow()
 
 
-class CannotConnect(exceptions.HomeAssistantError):
-    """Error to indicate we cannot connect for unknown reason."""
+class CHMUOptionsFlow(OptionsFlow):
+    """Handle the options flow (scan interval)."""
 
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Manage the integration options."""
+        if user_input is not None:
+            return self.async_create_entry(data=user_input)
 
-class StationNotFound(exceptions.HomeAssistantError):
-    """Error to indicate wrong stop was provided."""
-
-
+        current = self.config_entry.options.get(
+            CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL_MINUTES
+        )
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_SCAN_INTERVAL, default=current): NumberSelector(
+                    NumberSelectorConfig(
+                        min=MIN_SCAN_INTERVAL_MINUTES,
+                        max=MAX_SCAN_INTERVAL_MINUTES,
+                        step=5,
+                        mode=NumberSelectorMode.BOX,
+                        unit_of_measurement="min",
+                    )
+                )
+            }
+        )
+        return self.async_show_form(step_id="init", data_schema=schema)

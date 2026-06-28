@@ -1,8 +1,15 @@
 # Czech Republic Air Quality Measurements
 
-This custom component provides a air quality measurements provides by Czech Hydro-meteorological Institute [CHMU](http://www.chmi.cz/?tab=2/). 
+This custom component provides air quality measurements provided by the Czech Hydrometeorological Institute [CHMU](http://www.chmi.cz/?tab=2/).
 
-Multiple air quality stations may be configured.
+Multiple air quality stations may be configured. For each station the integration creates:
+
+- an **air quality index** sensor (enum with colour/recommendation attributes),
+- a **measurement** sensor per pollutant (SO₂, NO₂, CO, PM10 1h/24h, PM2.5, O₃) with long-term statistics enabled,
+- a diagnostic **station** sensor (code, region, classification, owner),
+- a diagnostic **data updated** timestamp sensor.
+
+Data is refreshed once per hour using a `DataUpdateCoordinator` and Home Assistant's shared HTTP session.
 
 ## Installation
 
@@ -20,8 +27,8 @@ To install this integration manually you have to download cz_air_quality folder 
 
 From the Home Assistant front page go to **Configuration** and then select **Integrations** from the list.
 
-Use the "plus" button in the bottom right to add a new integration called **CHMU Air Quality** and choose preferred air quality station.
+Use the "plus" button in the bottom right to add a new integration called **CHMU Air Quality** and choose the preferred air quality station from the dropdown list (stations are loaded directly from CHMI).
 
-You can find the closest air quality station [here](http://pr-asu.chmi.cz:8080/IskoOzarkApp/rest/map_3h_cz/)
+You can find the closest air quality station on the [CHMI air quality map](https://www.chmi.cz/files/portal/docs/uoco/web_generator/aktual_hod_data_CZ.html).
 
-The success dialog will appear or an error will be displayed in the popup. Please note that not all stations measure all pollutants - some entities thus may be unavailable.
+The success dialog will appear or an error will be displayed in the popup. Please note that not all stations measure all pollutants - some entities may therefore report as unknown.

@@ -2,7 +2,7 @@
     "name": "Czech Air Quality Measurements",
     "filename": "cz_air_quality.zip",
     "hide_default_branch": true,
-    "homeassistant": "2023.8.0",
+    "homeassistant": "2024.12.0",
     "render_readme": true,
     "zip_release": true
 }

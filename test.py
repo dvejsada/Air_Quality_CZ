@@ -3,6 +3,8 @@ import sys
 import os
 import asyncio
 
+import aiohttp
+
 # Přidání cesty k modulu
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'custom_components', 'cz_air_quality'))
 
@@ -15,11 +17,21 @@ async def test_new_api():
     print("Testing simplified CHMUAirQuality class...")
     print("=" * 80)
 
+    session = aiohttp.ClientSession()
+    api = CHMUAirQuality(session)
+    try:
+        await _run_tests(api)
+    finally:
+        await session.close()
+
+
+async def _run_tests(api):
+    """Run the API smoke tests against a client instance."""
     # Test 1: Získání všech názvů stanic
     print("\n1. Testing get_all_station_names():")
     print("-" * 80)
     try:
-        station_names = await CHMUAirQuality.get_all_station_names()
+        station_names = await api.get_all_station_names()
         print(f"Total stations available: {len(station_names)}")
         print(f"\nFirst 10 station names:")
         for i, name in enumerate(station_names[:10], 1):
@@ -41,7 +53,7 @@ async def test_new_api():
     for station_name in test_stations:
         print(f"\n  Searching for: '{station_name}'")
         try:
-            result = await CHMUAirQuality.get_station_data(station_name)
+            result = await api.get_station_data(station_name)
 
             if result["station_data"]:
                 data = result["station_data"]
@@ -75,12 +87,12 @@ async def test_new_api():
     print("-" * 80)
 
     # Nejprve získáme nějaký název stanice
-    names = await CHMUAirQuality.get_all_station_names()
+    names = await api.get_all_station_names()
     if names:
         test_name = names[0]  # Vezmeme první název
         print(f"\n  Testing with name: '{test_name}'")
         try:
-            result = await CHMUAirQuality.get_station_data(test_name)
+            result = await api.get_station_data(test_name)
 
             if result["station_data"]:
                 print(f"  ✓ Success!")
@@ -97,7 +109,7 @@ async def test_new_api():
     print("\n4. Testing with non-existent station:")
     print("-" * 80)
     try:
-        result = await CHMUAirQuality.get_station_data("NonExistentStation123")
+        result = await api.get_station_data("NonExistentStation123")
         if result["station_data"] is None:
             print("  ✓ Correctly returned None for non-existent station")
         else:
@@ -111,7 +123,7 @@ async def test_new_api():
     print("\n5. Testing data structure for hub.py integration:")
     print("-" * 80)
     try:
-        result = await CHMUAirQuality.get_station_data("Praha")
+        result = await api.get_station_data("Praha")
 
         if result["station_data"]:
             data = result["station_data"]
