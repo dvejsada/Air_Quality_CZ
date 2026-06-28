@@ -1,157 +1,158 @@
-import aiohttp
+"""Client for the CHMI (Czech Hydrometeorological Institute) air quality API."""
+from __future__ import annotations
+
 import logging
 import re
+
+import aiohttp
 
 _LOGGER = logging.getLogger(__name__)
 
 API_URL = "https://data-provider.chmi.cz/api/data/tab/ovzdusi.stanice.kvalita.grouped"
+REQUEST_TIMEOUT = 30
+
+# Keys of the pollutant measurements returned by the API.
+MEASUREMENT_KEYS = (
+    "so2_1h",
+    "no2_1h",
+    "co_8h",
+    "pm10_1h",
+    "pm10_24h",
+    "pm25_1h",
+    "o3_1h",
+)
+
+
+class CHMUApiError(Exception):
+    """Raised when communication with the CHMI API fails."""
 
 
 class CHMUAirQuality:
+    """Asynchronous client for the CHMI air quality API."""
 
-    @staticmethod
-    async def _fetch_data(search_text="", page_size=300):
-        """Internal method to fetch data from CHMI API using POST request.
+    def __init__(self, session: aiohttp.ClientSession) -> None:
+        """Initialise the client with a shared aiohttp session."""
+        self._session = session
+
+    async def _fetch_data(self, search_text: str = "", page_size: int = 300) -> dict:
+        """Fetch data from the CHMI API using a POST request.
 
         Args:
-            search_text: Text to search in station names (default "" for all)
-            page_size: Number of records to fetch (default 300 to get all stations)
+            search_text: Text to search in station names ("" returns all).
+            page_size: Number of records to fetch.
 
         Returns:
-            dict: API response containing header and data
+            The decoded JSON payload containing ``header`` and ``data``.
+
+        Raises:
+            CHMUApiError: If the request fails or returns invalid data.
         """
         payload = {
             "filter": None,
             "sort": None,
             "columns": [],
             "paging": {"start": 1, "size": page_size},
-            "search": {"columns": ["station_name"], "text": search_text}
+            "search": {"columns": ["station_name"], "text": search_text},
         }
 
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(API_URL, json=payload, timeout=aiohttp.ClientTimeout(total=10)) as response:
-                    response.raise_for_status()
-                    data = await response.json()
-                    return data
-        except aiohttp.ClientError as e:
-            _LOGGER.error(f"Error fetching data from CHMI API: {e}")
-            raise
+            async with self._session.post(
+                API_URL,
+                json=payload,
+                timeout=aiohttp.ClientTimeout(total=REQUEST_TIMEOUT),
+            ) as response:
+                response.raise_for_status()
+                return await response.json()
+        except aiohttp.ClientError as err:
+            raise CHMUApiError(f"Error fetching data from CHMI API: {err}") from err
 
     @staticmethod
-    def _clean_html(html_text):
-        """Remove HTML tags from text.
-
-        Args:
-            html_text: Text with HTML tags
-
-        Returns:
-            str: Clean text without HTML tags
-        """
+    def _clean_html(html_text) -> str | None:
+        """Strip HTML tags from a value returned by the API."""
         if not html_text:
             return None
-        # Remove HTML tags
-        clean = re.sub('<[^<]+?>', '', str(html_text))
-        return clean.strip()
+        clean = re.sub("<[^<]+?>", "", str(html_text))
+        return clean.strip() or None
 
     @staticmethod
-    def _extract_numeric_value(value_text):
-        """Extract numeric value from formatted text.
+    def _extract_numeric_value(value_text) -> float | None:
+        """Extract the numeric value from a formatted measurement string.
 
-        Args:
-            value_text: Text like "<div>13,2 &micro;g∙m<sup>-3</sup></div>"
-
-        Returns:
-            float: Numeric value or None
+        Example input: ``"<div>13,2 &micro;g∙m<sup>-3</sup></div>"``.
         """
-        if not value_text:
-            return None
-        # Clean HTML and extract number
         clean = CHMUAirQuality._clean_html(value_text)
-        if clean:
-            # Extract first number (replace comma with dot)
-            match = re.search(r'[\d,.]+', clean)
-            if match:
-                try:
-                    return float(match.group().replace(',', '.'))
-                except ValueError:
-                    return None
-        return None
+        if not clean:
+            return None
+        match = re.search(r"[\d,.]+", clean)
+        if not match:
+            return None
+        try:
+            return float(match.group().replace(",", "."))
+        except ValueError:
+            return None
 
     @staticmethod
-    def _process_station_data(station_data):
-        """Process raw station data from API.
-
-        Args:
-            station_data: Raw station data from API
-
-        Returns:
-            dict: Processed and cleaned station data
-        """
-        return {
-            'station_code': station_data.get('station_code'),
-            'station_name': CHMUAirQuality._clean_html(station_data.get('station_name')),
-            'region': station_data.get('region'),
-            'classification': station_data.get('classification'),
-            'owner': station_data.get('owner'),
-            'air_quality_index': CHMUAirQuality._clean_html(station_data.get('air_quality_index')),
-            'datetime': station_data.get('datetime'),
-            # Extract numeric values from pollutants
-            'so2_1h': CHMUAirQuality._extract_numeric_value(station_data.get('so2_1h')),
-            'no2_1h': CHMUAirQuality._extract_numeric_value(station_data.get('no2_1h')),
-            'co_8h': CHMUAirQuality._extract_numeric_value(station_data.get('co_8h')),
-            'pm10_1h': CHMUAirQuality._extract_numeric_value(station_data.get('pm10_1h')),
-            'pm10_24h': CHMUAirQuality._extract_numeric_value(station_data.get('pm10_24h')),
-            'pm25_1h': CHMUAirQuality._extract_numeric_value(station_data.get('pm25_1h')),
-            'o3_1h': CHMUAirQuality._extract_numeric_value(station_data.get('o3_1h')),
-            # Color indicators for limit violations
-            'limitPassedColor_aqi': station_data.get('limitPassedColor_aqi'),
+    def _process_station_data(station_data: dict) -> dict:
+        """Normalise a raw station record into a clean dictionary."""
+        processed = {
+            "station_code": station_data.get("station_code"),
+            "station_name": CHMUAirQuality._clean_html(station_data.get("station_name")),
+            "region": station_data.get("region"),
+            "classification": station_data.get("classification"),
+            "owner": station_data.get("owner"),
+            "air_quality_index": CHMUAirQuality._clean_html(
+                station_data.get("air_quality_index")
+            ),
+            "datetime": station_data.get("datetime"),
+            "limitPassedColor_aqi": station_data.get("limitPassedColor_aqi"),
         }
+        for key in MEASUREMENT_KEYS:
+            processed[key] = CHMUAirQuality._extract_numeric_value(
+                station_data.get(key)
+            )
+        return processed
 
-    @staticmethod
-    async def get_all_station_names():
-        """Get list of all available station names.
+    async def get_all_station_names(self) -> list[str]:
+        """Return the list of all available station names."""
+        data = await self._fetch_data()
+        names = [
+            CHMUAirQuality._clean_html(station.get("station_name"))
+            for station in data.get("data", [])
+            if station.get("station_name")
+        ]
+        return [name for name in names if name]
 
-        Returns:
-            list: List of station names (e.g., ['Praha 6-Břevnov', 'Praha 10-Průmyslová', ...])
-        """
-        try:
-            data = await CHMUAirQuality._fetch_data()
-            return [
-                CHMUAirQuality._clean_html(station.get('station_name'))
-                for station in data.get("data", [])
-                if station.get('station_name')
-            ]
-        except Exception as e:
-            _LOGGER.error(f"Error getting all station names: {e}")
-            return []
+    async def get_station_data(self, station_name: str) -> dict:
+        """Return the data for a specific station by (full) name.
 
-    @staticmethod
-    async def get_station_data(station_name):
-        """Get data for a specific station by its name (can be partial match).
-
-        Args:
-            station_name: Station name or partial name to search for
+        The API search is a substring match that can return several stations,
+        so the result is filtered for an exact name match before falling back
+        to the first record.
 
         Returns:
-            dict: Dictionary with 'updated' timestamp and 'station_data' dict, or None if not found
+            A dict with an ``updated`` timestamp and a ``station_data`` dict.
+            ``station_data`` is ``None`` when no station matches.
         """
-        try:
-            # Search for station by name
-            data = await CHMUAirQuality._fetch_data(search_text=station_name, page_size=10)
+        data = await self._fetch_data(search_text=station_name, page_size=20)
+        records = data.get("data") or []
 
-            if not data.get("data"):
-                _LOGGER.warning(f"No station found matching: {station_name}")
-                return {"updated": None, "station_data": None}
-
-            # Get first matching station
-            station_data = data["data"][0]
-            processed_data = CHMUAirQuality._process_station_data(station_data)
-
-            return {
-                "updated": station_data.get('datetime'),
-                "station_data": processed_data
-            }
-        except Exception as e:
-            _LOGGER.error(f"Error getting station data for '{station_name}': {e}")
+        if not records:
+            _LOGGER.warning("No station found matching: %s", station_name)
             return {"updated": None, "station_data": None}
+
+        # Prefer an exact name match; fall back to the first record.
+        station_data = next(
+            (
+                record
+                for record in records
+                if CHMUAirQuality._clean_html(record.get("station_name"))
+                == station_name
+            ),
+            records[0],
+        )
+
+        processed_data = CHMUAirQuality._process_station_data(station_data)
+        return {
+            "updated": station_data.get("datetime"),
+            "station_data": processed_data,
+        }

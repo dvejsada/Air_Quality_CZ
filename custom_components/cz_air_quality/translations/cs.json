@@ -4,7 +4,7 @@
       "user": {
         "title": "Přidat měřící stanici kvality ovzduší",
         "data": {
-          "station_selector": "Vyberte měřící stanici"
+          "station_selector": "Měřící stanice"
         },
         "data_description": {
           "station_selector": "Vyberte měřící stanici ze seznamu."
@@ -12,8 +12,35 @@
       }
     },
     "error": {
-      "cannot_connect": "Chyba připojení - nelze stáhnout data z ČHMÚ",
-      "station_not_in_list": "Stanice nebyla nalezena. Vyberte prosím stanici ze seznamu."
+      "cannot_connect": "Chyba připojení - nelze stáhnout data z ČHMÚ."
+    },
+    "abort": {
+      "already_configured": "Tato stanice je již nakonfigurována.",
+      "cannot_connect": "Chyba připojení - nelze stáhnout seznam stanic z ČHMÚ.",
+      "no_stations": "ČHMÚ nevrátil žádné měřící stanice."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "air_quality_index": {
+        "name": "Index kvality ovzduší",
+        "state": {
+          "1A": "Velmi dobrá (1A)",
+          "1B": "Dobrá (1B)",
+          "2A": "Přijatelná (2A)",
+          "2B": "Přijatelná (2B)",
+          "3A": "Zhoršená (3A)",
+          "3B": "Špatná (3B)",
+          "0": "Neúplná data",
+          "-1": "Index nestanoven"
+        }
+      },
+      "station": {
+        "name": "Měřící stanice"
+      },
+      "data_updated": {
+        "name": "Data aktualizována"
+      }
     }
   }
 }

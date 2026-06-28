@@ -1,31 +1,26 @@
-"""Air Quality CZ custom component for Home Assistant."""
+"""The CHMU Air Quality integration."""
 from __future__ import annotations
 
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from . import hub
-from .const import DOMAIN, CONF_STOP_SEL
-from .air_quality_data import CHMUAirQuality
 
-PLATFORMS: list[str] = ["sensor"]
+from .const import CONF_STOP_SEL
+from .coordinator import CHMUConfigEntry, CHMUDataUpdateCoordinator
+
+PLATFORMS: list[Platform] = [Platform.SENSOR]
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up Air Quality station from a config entry flow."""
-    initial_data = await CHMUAirQuality.get_station_data(entry.data[CONF_STOP_SEL])
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = hub.AirQuality(hass, entry.data[CONF_STOP_SEL], initial_data)
+async def async_setup_entry(hass: HomeAssistant, entry: CHMUConfigEntry) -> bool:
+    """Set up an air quality station from a config entry."""
+    coordinator = CHMUDataUpdateCoordinator(hass, entry, entry.data[CONF_STOP_SEL])
+    await coordinator.async_config_entry_first_refresh()
+
+    entry.runtime_data = coordinator
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_unload_entry(hass: HomeAssistant, entry: CHMUConfigEntry) -> bool:
     """Unload a config entry."""
-    # This is called when an entry/configured device is to be removed. The class
-    # needs to unload itself, and remove callbacks. See the classes for further
-    # details
-    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-    if unload_ok:
-        hass.data[DOMAIN].pop(entry.entry_id)
-
-    return unload_ok
+    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)

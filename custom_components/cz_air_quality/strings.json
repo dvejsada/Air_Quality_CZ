@@ -4,16 +4,43 @@
       "user": {
         "title": "Add Air Quality Station",
         "data": {
-          "station_selector": "Select monitoring station"
+          "station_selector": "Monitoring station"
         },
         "data_description": {
-          "station_selector": "Enter station code (e.g., ABRE, AHOL). Find station codes in CHMI table: https://www.chmi.cz/namerena-data/data-z-mericich-stanic/tabulka-kvality-ovzdusi"
+          "station_selector": "Select a monitoring station from the list."
         }
       }
     },
     "error": {
-      "cannot_connect": "Connection error - unable to download data from CHMI",
-      "station_not_in_list": "Station not found. Please select a station from the list."
+      "cannot_connect": "Connection error - unable to download data from CHMI."
+    },
+    "abort": {
+      "already_configured": "This station is already configured.",
+      "cannot_connect": "Connection error - unable to download the station list from CHMI.",
+      "no_stations": "No monitoring stations were returned by CHMI."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "air_quality_index": {
+        "name": "AQ Index",
+        "state": {
+          "1A": "Very good (1A)",
+          "1B": "Good (1B)",
+          "2A": "Acceptable (2A)",
+          "2B": "Acceptable (2B)",
+          "3A": "Aggravated (3A)",
+          "3B": "Bad (3B)",
+          "0": "Incomplete data",
+          "-1": "Not determined"
+        }
+      },
+      "station": {
+        "name": "AQ Station"
+      },
+      "data_updated": {
+        "name": "Data updated"
+      }
     }
   }
 }

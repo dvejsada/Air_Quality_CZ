@@ -1,71 +1,65 @@
-import voluptuous as vol
+"""Config flow for the CHMU Air Quality integration."""
+from __future__ import annotations
 
 import logging
+from typing import Any
 
-from .const import DOMAIN, CONF_STOP_SEL
-from homeassistant import config_entries, exceptions
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.selector import selector
-from .air_quality_data import CHMUAirQuality
+import voluptuous as vol
 
+from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.selector import (
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
+)
+
+from .air_quality_data import CHMUAirQuality, CHMUApiError
+from .const import CONF_STOP_SEL, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
 
-async def get_station_name_list() -> list:
-    """Fetch all available station names from CHMI API."""
-    return await CHMUAirQuality.get_all_station_names()
+class CHMUConfigFlow(ConfigFlow, domain=DOMAIN):
+    """Handle a config flow for CHMU Air Quality."""
 
-class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-
-    CONNECTION_CLASS = config_entries.CONN_CLASS_CLOUD_POLL
     VERSION = 1
 
-    async def async_step_user(self, user_input=None):
+    async def async_step_user(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Handle the initial step."""
+        errors: dict[str, str] = {}
 
-        data_schema: dict = {}
-
-        station_name_list = await get_station_name_list()
-
-        data_schema[CONF_STOP_SEL] = selector({
-                "select": {
-                    "options": station_name_list,
-                    "mode": "dropdown",
-                    "sort": True,
-                    "custom_value": False
-                }
-            })
-
-        # Set dict for errors
-        errors: dict = {}
-
-        # Steps to take if user input is received
         if user_input is not None:
-            try:
-                return self.async_create_entry(title=user_input[CONF_STOP_SEL], data=user_input)
+            station = user_input[CONF_STOP_SEL]
+            await self.async_set_unique_id(station)
+            self._abort_if_unique_id_configured()
+            return self.async_create_entry(title=station, data=user_input)
 
-            except CannotConnect:
-                _LOGGER.exception("Cannot download data, check your internet connection.")
-                errors["base"] = "cannot_connect"
+        try:
+            api = CHMUAirQuality(async_get_clientsession(self.hass))
+            station_names = await api.get_all_station_names()
+        except CHMUApiError:
+            _LOGGER.exception("Unable to fetch station list from CHMI")
+            return self.async_abort(reason="cannot_connect")
 
-            except StationNotFound:
-                errors[CONF_STOP_SEL] = "station_not_in_list"
+        if not station_names:
+            return self.async_abort(reason="no_stations")
 
-            except Exception:  # pylint: disable=broad-except
-                _LOGGER.exception("Unknown exception")
-                errors["base"] = "Unknown exception"
-
-        # If there is no user input or there were errors, show the form again, including any errors that were found with the input.
-        return self.async_show_form(
-            step_id="user", data_schema=vol.Schema(data_schema), errors=errors
+        data_schema = vol.Schema(
+            {
+                vol.Required(CONF_STOP_SEL): SelectSelector(
+                    SelectSelectorConfig(
+                        options=sorted(station_names),
+                        mode=SelectSelectorMode.DROPDOWN,
+                        sort=True,
+                        custom_value=False,
+                    )
+                )
+            }
         )
 
-
-class CannotConnect(exceptions.HomeAssistantError):
-    """Error to indicate we cannot connect for unknown reason."""
-
-
-class StationNotFound(exceptions.HomeAssistantError):
-    """Error to indicate wrong stop was provided."""
-
-
+        return self.async_show_form(
+            step_id="user", data_schema=data_schema, errors=errors
+        )
