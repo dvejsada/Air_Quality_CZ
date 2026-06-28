@@ -9,6 +9,15 @@
         "data_description": {
           "station_selector": "Select a monitoring station from the list."
         }
+      },
+      "reconfigure": {
+        "title": "Change Air Quality Station",
+        "data": {
+          "station_selector": "Monitoring station"
+        },
+        "data_description": {
+          "station_selector": "Select a different monitoring station for this entry."
+        }
       }
     },
     "error": {
@@ -17,7 +26,21 @@
     "abort": {
       "already_configured": "This station is already configured.",
       "cannot_connect": "Connection error - unable to download the station list from CHMI.",
-      "no_stations": "No monitoring stations were returned by CHMI."
+      "no_stations": "No monitoring stations were returned by CHMI.",
+      "reconfigure_successful": "The station was changed successfully."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Air Quality options",
+        "data": {
+          "scan_interval": "Update interval (minutes)"
+        },
+        "data_description": {
+          "scan_interval": "How often to fetch new data from CHMI. CHMI publishes new values roughly once per hour."
+        }
+      }
     }
   },
   "entity": {

@@ -9,6 +9,15 @@
         "data_description": {
           "station_selector": "Vyberte měřící stanici ze seznamu."
         }
+      },
+      "reconfigure": {
+        "title": "Změnit měřící stanici kvality ovzduší",
+        "data": {
+          "station_selector": "Měřící stanice"
+        },
+        "data_description": {
+          "station_selector": "Vyberte pro tento záznam jinou měřící stanici."
+        }
       }
     },
     "error": {
@@ -17,7 +26,21 @@
     "abort": {
       "already_configured": "Tato stanice je již nakonfigurována.",
       "cannot_connect": "Chyba připojení - nelze stáhnout seznam stanic z ČHMÚ.",
-      "no_stations": "ČHMÚ nevrátil žádné měřící stanice."
+      "no_stations": "ČHMÚ nevrátil žádné měřící stanice.",
+      "reconfigure_successful": "Stanice byla úspěšně změněna."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Nastavení kvality ovzduší",
+        "data": {
+          "scan_interval": "Interval aktualizace (minuty)"
+        },
+        "data_description": {
+          "scan_interval": "Jak často stahovat nová data z ČHMÚ. ČHMÚ zveřejňuje nové hodnoty přibližně jednou za hodinu."
+        }
+      }
     }
   },
   "entity": {

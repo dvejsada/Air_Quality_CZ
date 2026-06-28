@@ -1,0 +1,6 @@
+# Requirements for running the test suite.
+# pytest-homeassistant-custom-component pulls in a matching Home Assistant,
+# pytest and pytest-asyncio. Pin it to align with your target HA version.
+pytest-homeassistant-custom-component>=0.13.190
+pytest-cov>=4.1.0
+aioresponses>=0.7.6

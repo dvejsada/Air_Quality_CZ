@@ -1,8 +1,6 @@
 """Constants for the CHMU Air Quality integration."""
 from __future__ import annotations
 
-from datetime import timedelta
-
 from homeassistant.components.sensor import SensorDeviceClass
 
 DOMAIN = "cz_air_quality"
@@ -14,7 +12,11 @@ ICON_UPDATE = "mdi:update"
 
 MANUFACTURER = "Czech Hydrometeorological Institute"
 
-DEFAULT_SCAN_INTERVAL = timedelta(hours=1)
+# Scan interval (in minutes) is user-configurable via the options flow.
+# CHMI publishes new values roughly once per hour.
+DEFAULT_SCAN_INTERVAL_MINUTES = 60
+MIN_SCAN_INTERVAL_MINUTES = 15
+MAX_SCAN_INTERVAL_MINUTES = 1440
 
 # Definition of pollutant measurements exposed as sensors.
 # ``device_class`` is omitted where the CHMI unit (µg/m³) is incompatible with

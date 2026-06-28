@@ -2,14 +2,16 @@
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_SCAN_INTERVAL
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .air_quality_data import CHMUAirQuality, CHMUApiError
-from .const import DEFAULT_SCAN_INTERVAL, DOMAIN, MANUFACTURER
+from .const import DEFAULT_SCAN_INTERVAL_MINUTES, DOMAIN, MANUFACTURER
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -21,12 +23,15 @@ class CHMUDataUpdateCoordinator(DataUpdateCoordinator[dict]):
 
     def __init__(self, hass: HomeAssistant, entry: CHMUConfigEntry, station: str) -> None:
         """Initialise the coordinator."""
+        scan_interval = entry.options.get(
+            CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL_MINUTES
+        )
         super().__init__(
             hass,
             _LOGGER,
             config_entry=entry,
             name=f"{DOMAIN}_{station}",
-            update_interval=DEFAULT_SCAN_INTERVAL,
+            update_interval=timedelta(minutes=scan_interval),
         )
         self.station = station
         self._api = CHMUAirQuality(async_get_clientsession(hass))
